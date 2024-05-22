@@ -27,6 +27,7 @@ void LCD_write_data(char data);
 void LCD_text(const char *string);
 
 void LCD_clear_display(void);
+void LCD_return_home(void);
 void LCD_off(void);
 void LCD_on(void);
 void LCD_cursor(void);
@@ -37,6 +38,12 @@ void LCD_set_DDRAM(const uint8_t line, const uint8_t position);
 void LCD_line_1(void);
 void LCD_line_2(void);
 void LCD_line(const uint8_t line);
+
+void LCD_move_cursor(const uint8_t direction);
+void LCD_move_display(const uint8_t direction);
+void LCD_fill_CGRAM(const uint8_t address, const char arr[]);
+void LCD_show_display_modes(void);
+void LCD_show_shift_modes(void);
 
 //	##############################################################################################################################
 void LCD_init(void)
@@ -118,8 +125,8 @@ void LCD_demo(void)
 	LCD_clear_display();			//	Na wejściu czyścimy wyświetlacz,
 	LCD_blink();
 
-	LCD_text("SIEMANKO!!!");
-	LCD_line_2();
+
+	LCD_text("SIEMANKO!!!");LCD_line_2();
 	LCD_text("yo, yo");
 	LCD_blink();
 
@@ -130,6 +137,14 @@ void LCD_demo(void)
 	LCD_text("==KONIEC==");
 
 	LCD_on();
+
+	HAL_Delay(1000);
+
+	LCD_show_display_modes();
+	LCD_show_shift_modes();
+
+	LCD_return_home();
+	LCD_text("      THE END");
 }
 
 static inline void LCD_cmd(const uint8_t command)
@@ -185,6 +200,15 @@ void LCD_clear_display(void)
 
 	LCD_cmd(LCD_CD);
 	HAL_Delay(LCD_DELAY_MS);	//	Czas wykonywania polecenia: 1,53 [ms],
+}
+
+void LCD_return_home(void)
+{
+	//	-przesunięcie kursora oraz okna do pozycji początkowej na DDRAM = 0,
+	//	-zawartość DDRAM pozostaje bez zmian,
+
+	LCD_cmd(LCD_RH);
+	HAL_Delay(LCD_DELAY_MS);
 }
 
 void LCD_off(void)
@@ -317,6 +341,132 @@ void LCD_line(const uint8_t line)
 
 	LCD_cmd( LCD_SET_DDRAM | line );
 	HAL_Delay(LCD_DELAY_MS);
+}
+
+
+void LCD_move_cursor(const uint8_t direction)
+{
+	//	-przesunięcie kursora w wybranym kierunku,
+	//	-odpalenie polecenia "Cursor or display shift",
+
+	LCD_cmd( LCD_SHIFT | LCD_CURSOR_MOVE | direction );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_move_display(const uint8_t direction)
+{
+	//	-przesunięcie adresu pamięci DDRAM,
+	//	-odpalenie polecenia "Cursor or display shift",
+
+	LCD_cmd( LCD_SHIFT | LCD_DISPLAY_SHIFT | direction );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_fill_CGRAM(const uint8_t address, const char arr[])
+{
+	//	-funkcja zapisująca pojedynczy znak do pamięci CGRAM pod wskazany adres,
+	//	-jako adres należy wpisać wielokrotność ósemki,
+
+	//uint8_t buffor;
+
+	LCD_set_CGRAM(address);		//	Ustawienie adresu na który "patrzymy" w CGRAM,
+
+	for(uint8_t i=0; i<8; i++)
+	{
+	//	buffor = pgm_read_byte(arr++);
+		//LCD_write_data(buffor);
+	}
+
+	LCD_line_1();				//	Powrót wskaźnika na pamięć DDRAM,
+}
+
+void LCD_show_display_modes(void)
+{
+	//	-wyświetlenie czterech dostępnych trybów pracy wyświetlacza,
+	//	1. włącz tylko podkreślnik,
+	//	2. włącz tylko mryganie,
+	//	3. wyłącz wszystko,
+	//	4. włącz podkreślnik i mryganie,
+
+	const uint16_t DELAY = 2500;	//	Wartość opóźnienia w ms,
+
+	LCD_clear_display();			//	Na wejściu czyścimy wyświetlacz,
+	LCD_on();						//	Włączamy wyświetlacz,
+	LCD_set_DDRAM(2,5);				//	Ustawiamy adres początku strzałki
+	LCD_text("-->   <--");			//	Wyświetlamy strzałki,
+
+
+	LCD_return_home();				//	Powrót adresu na początek pamięci DDRAM,
+	LCD_text("CURSOR=1 BLINK=0");	//	Wyświetlenie nazwy opcji,
+	LCD_set_DDRAM(2,9);				//	Adres na właściwą pozycję,
+	LCD_cursor();					//	Włączenie odpowiedniego trybu,
+	HAL_Delay(DELAY);				//	Czas prezentacji trybu :)
+
+	LCD_return_home();;
+	LCD_text("CURSOR=0 BLINK=1");
+	LCD_set_DDRAM(2,9);
+	LCD_blink();
+	HAL_Delay(DELAY);
+
+	LCD_return_home();
+	LCD_text("CURSOR=0 BLINK=0");
+	LCD_set_DDRAM(2,9);
+	LCD_on();
+	HAL_Delay(DELAY);
+
+	LCD_return_home();
+	LCD_text("CURSOR=1 BLINK=1");
+	LCD_set_DDRAM(2,9);
+	LCD_cursor_blink();
+	HAL_Delay(DELAY);
+
+	LCD_on();						//	Usunięcie pokreślnika i migającego kursora,
+	LCD_clear_display();			//	Porządki,
+}
+
+void LCD_show_shift_modes(void)
+{
+	//	-wyświetlenie czterech rodzajów przesuwania kursora lub pamięci DDRAM,
+	//	1. kursor w lewo,
+	//	2. kursor w prawo,
+	//	3. DDRAM w lewo,
+	//	4. DDRAM w prawo,
+
+	const uint16_t DELAY = 2500;	//	Wartość opóźnienia w ms,
+
+	//	$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+	LCD_clear_display();			//	Na wejściu czyścimy wyświetlacz,
+	LCD_set_DDRAM(2,5);				//	Ustawiamy adres początku strzałki
+	LCD_text("-->   <--");			//	Wyświetlamy strzałki,
+	LCD_cursor();					//	Włączenie wyświetlacza z kursorem
+
+	//	$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+	LCD_return_home();				//	Powrót adresu na początek pamięci DDRAM,
+	LCD_text("CURSOR LEFT   ");		//	Wyświetlenie nazwy opcji,
+	LCD_set_DDRAM(2,9);				//	Adres na właściwą pozycję,
+	LCD_move_cursor(LCD_LEFT);		//	Włączenie odpowiedniego trybu,
+	HAL_Delay(DELAY);				//	Czas prezentacji trybu :)
+
+	LCD_return_home();
+	LCD_text("CURSOR RIGHT  ");
+	LCD_set_DDRAM(2,9);
+	LCD_move_cursor(LCD_RIGHT);
+	HAL_Delay(DELAY);
+
+	LCD_return_home();
+	LCD_text("DDRAM LEFT  ");
+	LCD_set_DDRAM(2,9);
+	LCD_move_display(LCD_LEFT);
+	HAL_Delay(DELAY);
+
+	LCD_return_home();
+	LCD_text("DDRAM RIGHT ");
+	LCD_set_DDRAM(2,9);
+	LCD_move_display(LCD_RIGHT);
+	HAL_Delay(DELAY);
+
+	LCD_on();						//	Usunięcie podkreślnika z wyświetlacza,
+	LCD_clear_display();			//	Porządki,
 }
 
 

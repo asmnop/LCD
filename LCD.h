@@ -60,6 +60,7 @@ void LCD_write_data(char data);
 void LCD_text(const char *string);
 
 void LCD_clear_display(void);
+void LCD_return_home(void);
 void LCD_off(void);
 void LCD_on(void);
 void LCD_cursor(void);
@@ -71,6 +72,11 @@ void LCD_line_1(void);
 void LCD_line_2(void);
 void LCD_line(const uint8_t line);
 
+void LCD_move_cursor(const uint8_t direction);
+void LCD_move_display(const uint8_t direction);
+void LCD_fill_CGRAM(const uint8_t address, const char arr[]);
+void LCD_show_display_modes(void);
+void LCD_show_shift_modes(void);
 
 #endif /* INC_LCD_H_ */
 
