@@ -12,16 +12,31 @@
 
 #define	LCD_DELAY_MS	5	//	Czas oczekiwania na wykonanie instrukcji,
 
+#define LCD_BUF_X_MAX		20		//	Ilość pól w wierszu,
+#define LCD_BUF_Y_MAX		4		//	Ilość wierszy,
+#define LCD_LINE_0_ADDRESS	0x00	//	Adres pierwszego pola w linii nr 0,
+#define LCD_LINE_1_ADDRESS	0x40	//	Adres pierwszego pola w linii nr 1,
+#define LCD_LINE_2_ADDRESS	0x14	//	Adres pierwszego pola w linii nr 2,
+#define LCD_LINE_3_ADDRESS	0x54	//	Adres pierwszego pola w linii nr 3,
+
 void LCD_init(void);
+void LCD_demo(void);
 static inline void LCD_cmd(const uint8_t command);
 static inline void LCD_I2C_write(const char data, const uint8_t mode_RS);
-void LCD_off(void);
-void LCD_on(void);
-void LCD_clear_display(void);
 void LCD_write_data(char data);
 void LCD_text(const char *string);
-void LCD_blink(void);
 
+void LCD_clear_display(void);
+void LCD_off(void);
+void LCD_on(void);
+void LCD_cursor(void);
+void LCD_blink(void);
+void LCD_cursor_blink(void);
+void LCD_set_CGRAM(const uint8_t address);
+void LCD_set_DDRAM(const uint8_t line, const uint8_t position);
+void LCD_line_1(void);
+void LCD_line_2(void);
+void LCD_line(const uint8_t line);
 
 //	##############################################################################################################################
 void LCD_init(void)
@@ -96,6 +111,27 @@ void LCD_init(void)
 	LCD_text("MATRIX HAS YOU !!!");
 }
 
+void LCD_demo(void)
+{
+	//	-obsługa testowa wyświetlacza,
+
+	LCD_clear_display();			//	Na wejściu czyścimy wyświetlacz,
+	LCD_blink();
+
+	LCD_text("SIEMANKO!!!");
+	LCD_line_2();
+	LCD_text("yo, yo");
+	LCD_blink();
+
+	LCD_cursor_blink();
+	LCD_line(LCD_LINE_2_ADDRESS);
+	LCD_text("Linia numer 3");
+	LCD_line(LCD_LINE_3_ADDRESS);
+	LCD_text("==KONIEC==");
+
+	LCD_on();
+}
+
 static inline void LCD_cmd(const uint8_t command)
 {
 	LCD_I2C_write(command, 0);
@@ -114,32 +150,6 @@ static inline void LCD_I2C_write(const char data, const uint8_t mode_RS)
 
 	data_temp = ((data & 0b00001111)<<4) | 8 | mode_RS;
 	HAL_I2C_Master_Transmit(&hi2c1, (PCF8574_ADDR<<1), &data_temp, 1, 1000);
-}
-
-void LCD_off(void)
-{
-	//	-wyłączenie wyświetlacza, pozycja kursora w pamięci DDRAM pozostaje bez zmian,
-
-	LCD_cmd( LCD_DISPLAY | LCD_DISPLAY_OFF | LCD_CURSOR_OFF | LCD_BLINK_OFF);
-	HAL_Delay(LCD_DELAY_MS);
-}
-
-void LCD_on(void)
-{
-	//	-włączenie wyświetlacza bez bajerów,
-	//	-odpalenie polecenia "Display on/off control",
-
-	LCD_cmd( LCD_DISPLAY | LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF );
-	HAL_Delay(LCD_DELAY_MS);
-}
-
-void LCD_clear_display(void)
-{
-	//	-wypełnienie pamięci DDRAM znakami spacji i przesunięcie kursora oraz okna do pozycji początkowej na DDRAM = 0,
-	//	-innymi słowy wyczyszczenie wyświetlacza,
-
-	LCD_cmd(LCD_CD);
-	HAL_Delay(LCD_DELAY_MS);	//	Czas wykonywania polecenia: 1,53 [ms],
 }
 
 void LCD_write_data(char data)
@@ -165,6 +175,44 @@ void LCD_text(const char *string)
 		LCD_write_data(*string++);	//	Zapisanie znaku do pamięci DD RAM czyli wyświetlenie go,
 }
 
+
+
+//	##############################################################################################################################
+void LCD_clear_display(void)
+{
+	//	-wypełnienie pamięci DDRAM znakami spacji i przesunięcie kursora oraz okna do pozycji początkowej na DDRAM = 0,
+	//	-innymi słowy wyczyszczenie wyświetlacza,
+
+	LCD_cmd(LCD_CD);
+	HAL_Delay(LCD_DELAY_MS);	//	Czas wykonywania polecenia: 1,53 [ms],
+}
+
+void LCD_off(void)
+{
+	//	-wyłączenie wyświetlacza, pozycja kursora w pamięci DDRAM pozostaje bez zmian,
+
+	LCD_cmd( LCD_DISPLAY | LCD_DISPLAY_OFF | LCD_CURSOR_OFF | LCD_BLINK_OFF);
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_on(void)
+{
+	//	-włączenie wyświetlacza bez bajerów,
+	//	-odpalenie polecenia "Display on/off control",
+
+	LCD_cmd( LCD_DISPLAY | LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_cursor(void)
+{
+	//	-włączenie wyświetlacza wraz podkreślnikiem,
+	//	-odpalenie polecenia "Display on/off control",
+
+	LCD_cmd( LCD_DISPLAY | LCD_DISPLAY_ON | LCD_CURSOR_ON | LCD_BLINK_OFF );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
 void LCD_blink(void)
 {
 	//	-włączenie wyświetlacza wraz z mrygającym polem,
@@ -174,8 +222,102 @@ void LCD_blink(void)
 	HAL_Delay(LCD_DELAY_MS);
 }
 
+void LCD_cursor_blink(void)
+{
+	//	-włączenie wyświetlacza z podkreślnikiem oraz mrygającym polem,
+	//	-odpalenie polecenia "Display on/off control",
+
+	LCD_cmd( LCD_DISPLAY | LCD_DISPLAY_ON | LCD_CURSOR_ON | LCD_BLINK_ON );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_set_CGRAM(const uint8_t address)
+{
+	//	-ustawienie adresu CG RAM,
+	//	-wpisywane adresy powinny być w zakresie 0x00 - 0x3F (0 - 63),
+
+	LCD_cmd( LCD_SET_CGRAM | address);
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_set_DDRAM(const uint8_t line, const uint8_t position)
+{
+	//	-ustawienie adresu DD RAM,
+	//	-w praktyce chodzi o ustawienie adresu na konkretne pole w wyświetlaczu,
+	//	-w trybie 2-liniowym adresy w zakresie:
+	//	pierwsza linia	--> 0x00 - 0x27 (0 - 39),
+	//	druga linia		--> 0x40 - 0x67 (64 - 103),
 
 
+	//	WYŚWIETLACZ 4x16:
+	//	linia nr 1 --> 0x00 - 0x0F (0 - 15)
+	//	linia nr 2 --> 0x40 - 0x4F (64 - 79)
+	//	linia nr 3 --> 0x10 - 0x1F (16 - 31)
+	//	linia nr 4 --> 0x50 - 0x5F (80 - 95)
+
+	//	WYŚWIETLACZ 4x20:
+	//	linia nr 1 --> 0x00 - 0x13 (0 - 19)
+	//	linia nr 2 --> 0x40 - 0x53 (64 - 83)
+	//	linia nr 3 --> 0x14 - 0x27 (20 - 39)
+	//	linia nr 4 --> 0x54 - 0x67 (84 - 103)
+
+	uint8_t pos_ram = 0;
+
+	switch(line)
+	{
+		case 0: pos_ram = LCD_LINE_0_ADDRESS + position; break;
+		case 1: pos_ram = LCD_LINE_1_ADDRESS + position; break;
+		case 2: pos_ram = LCD_LINE_2_ADDRESS + position; break;
+		case 3: pos_ram = LCD_LINE_3_ADDRESS + position; break;
+	}
+
+	//uint8_t gu[454]
+
+	/*
+	uint8_t pos_ram = (line)*64 + (position);
+
+	if(line==1)
+	{
+		pos_ram = 0x40 + position;
+	}
+
+	if(line==2)
+	{
+		pos_ram = 0x14 + position;
+	}
+
+	if(line==3)
+	{
+		pos_ram = 0x54 + position;
+	}
+*/
+	LCD_cmd( LCD_SET_DDRAM | ( pos_ram ) );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_line_1(void)
+{
+	//	-ustawienie adresu DDRAM na 0x00, czyli na pierwszą pozycję w pierwszej linii,
+
+	LCD_cmd( LCD_SET_DDRAM | LCD_LINE_0_ADDRESS );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_line_2(void)
+{
+	//	-ustawienie adresu DD RAM na 0x40, czyli na pierwszą pozycję w drugiej linii,
+
+	LCD_cmd( LCD_SET_DDRAM | LCD_LINE_1_ADDRESS );
+	HAL_Delay(LCD_DELAY_MS);
+}
+
+void LCD_line(const uint8_t line)
+{
+	//	-ustawienie adresu DD RAM na pierwszą pozycję w wybranej linii wyświetlacza LCD,
+
+	LCD_cmd( LCD_SET_DDRAM | line );
+	HAL_Delay(LCD_DELAY_MS);
+}
 
 
 

@@ -16,13 +16,6 @@
 #define PCF8574_ADDR	0b00100111	//	0x27
 
 
-//	CHARAKTERYSTYCZNE ADRESY W PAMI�CI DD RAM:
-#define LCD_LINE_1	0x00
-#define LCD_LINE_2	0x40
-#define LCD_LINE_3	0x10
-#define LCD_LINE_4	0x50
-
-
 //	DEFINIOWANIE OPCJI DO UŻYCIA W WYWOŁANIACH FUNKCJI:
 #define LCD_CD			1	//	Czyszczenie wyświetlacza, ustawienie kursora na pozycję początkową (adres=0)
 
@@ -62,8 +55,21 @@
 
 
 void LCD_init(void);
-void LCD_off(void);
+void LCD_demo(void);
+void LCD_write_data(char data);
+void LCD_text(const char *string);
+
 void LCD_clear_display(void);
+void LCD_off(void);
+void LCD_on(void);
+void LCD_cursor(void);
+void LCD_blink(void);
+void LCD_cursor_blink(void);
+void LCD_set_CGRAM(const uint8_t address);
+void LCD_set_DDRAM(const uint8_t line, const uint8_t position);
+void LCD_line_1(void);
+void LCD_line_2(void);
+void LCD_line(const uint8_t line);
 
 
 #endif /* INC_LCD_H_ */
