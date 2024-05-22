@@ -12,6 +12,17 @@
 #include "i2c.h"
 #include "IIC.h"
 
+
+typedef struct LCD_STRUCT
+{
+	const uint8_t X;
+	const uint8_t Y;
+	const uint8_t line[];
+}LCD_t;
+
+
+
+
 //	DEVICE ADDRESS PCF8574 - CONVERTER I2C:
 #define PCF8574_ADDR	0b00100111	//	0x27
 
@@ -55,7 +66,7 @@
 
 
 void LCD_init(void);
-void LCD_demo(void);
+void LCD_demo(LCD_t *ptr);
 void LCD_write_data(char data);
 void LCD_text(const char *string);
 
@@ -68,13 +79,13 @@ void LCD_blink(void);
 void LCD_cursor_blink(void);
 void LCD_set_CGRAM(const uint8_t address);
 void LCD_set_DDRAM(const uint8_t line, const uint8_t position);
-void LCD_line_1(void);
-void LCD_line_2(void);
-void LCD_line(const uint8_t line);
+void LCD_line_1(LCD_t *ptr);
+void LCD_line_2(LCD_t *ptr);
+void LCD_line(LCD_t *ptr, const uint8_t line);
 
 void LCD_move_cursor(const uint8_t direction);
 void LCD_move_display(const uint8_t direction);
-void LCD_fill_CGRAM(const uint8_t address, const char arr[]);
+void LCD_fill_CGRAM(LCD_t *ptr, const uint8_t address, const char arr[]);
 void LCD_show_display_modes(void);
 void LCD_show_shift_modes(void);
 

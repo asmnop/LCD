@@ -12,6 +12,9 @@
 
 #define	LCD_DELAY_MS	5	//	Czas oczekiwania na wykonanie instrukcji,
 
+
+
+
 #define LCD_BUF_X_MAX		20		//	Ilość pól w wierszu,
 #define LCD_BUF_Y_MAX		4		//	Ilość wierszy,
 #define LCD_LINE_0_ADDRESS	0x00	//	Adres pierwszego pola w linii nr 0,
@@ -20,7 +23,7 @@
 #define LCD_LINE_3_ADDRESS	0x54	//	Adres pierwszego pola w linii nr 3,
 
 void LCD_init(void);
-void LCD_demo(void);
+void LCD_demo(LCD_t *ptr);
 static inline void LCD_cmd(const uint8_t command);
 static inline void LCD_I2C_write(const char data, const uint8_t mode_RS);
 void LCD_write_data(char data);
@@ -35,13 +38,13 @@ void LCD_blink(void);
 void LCD_cursor_blink(void);
 void LCD_set_CGRAM(const uint8_t address);
 void LCD_set_DDRAM(const uint8_t line, const uint8_t position);
-void LCD_line_1(void);
-void LCD_line_2(void);
-void LCD_line(const uint8_t line);
+void LCD_line_1(LCD_t *ptr);
+void LCD_line_2(LCD_t *ptr);
+void LCD_line(LCD_t *ptr, const uint8_t line);
 
 void LCD_move_cursor(const uint8_t direction);
 void LCD_move_display(const uint8_t direction);
-void LCD_fill_CGRAM(const uint8_t address, const char arr[]);
+void LCD_fill_CGRAM(LCD_t *ptr, const uint8_t address, const char arr[]);
 void LCD_show_display_modes(void);
 void LCD_show_shift_modes(void);
 
@@ -118,7 +121,7 @@ void LCD_init(void)
 	LCD_text("MATRIX HAS YOU !!!");
 }
 
-void LCD_demo(void)
+void LCD_demo(LCD_t *ptr)
 {
 	//	-obsługa testowa wyświetlacza,
 
@@ -126,18 +129,20 @@ void LCD_demo(void)
 	LCD_blink();
 
 
-	LCD_text("SIEMANKO!!!");LCD_line_2();
+	LCD_text("SIEMANKO!!!");
+	LCD_line_2(ptr);
 	LCD_text("yo, yo");
 	LCD_blink();
 
 	LCD_cursor_blink();
-	LCD_line(LCD_LINE_2_ADDRESS);
+	LCD_line(ptr, 2);
 	LCD_text("Linia numer 3");
-	LCD_line(LCD_LINE_3_ADDRESS);
+	LCD_line(ptr, 3);
 	LCD_text("==KONIEC==");
 
 	LCD_on();
 
+	/*
 	HAL_Delay(1000);
 
 	LCD_show_display_modes();
@@ -145,6 +150,7 @@ void LCD_demo(void)
 
 	LCD_return_home();
 	LCD_text("      THE END");
+	*/
 }
 
 static inline void LCD_cmd(const uint8_t command)
@@ -319,27 +325,27 @@ void LCD_set_DDRAM(const uint8_t line, const uint8_t position)
 	HAL_Delay(LCD_DELAY_MS);
 }
 
-void LCD_line_1(void)
+void LCD_line_1(LCD_t *ptr)
 {
 	//	-ustawienie adresu DDRAM na 0x00, czyli na pierwszą pozycję w pierwszej linii,
 
-	LCD_cmd( LCD_SET_DDRAM | LCD_LINE_0_ADDRESS );
+	LCD_cmd( LCD_SET_DDRAM | ptr->line[0] );
 	HAL_Delay(LCD_DELAY_MS);
 }
 
-void LCD_line_2(void)
+void LCD_line_2(LCD_t *ptr)
 {
 	//	-ustawienie adresu DD RAM na 0x40, czyli na pierwszą pozycję w drugiej linii,
 
-	LCD_cmd( LCD_SET_DDRAM | LCD_LINE_1_ADDRESS );
+	LCD_cmd( LCD_SET_DDRAM | ptr->line[1] );
 	HAL_Delay(LCD_DELAY_MS);
 }
 
-void LCD_line(const uint8_t line)
+void LCD_line(LCD_t *ptr, const uint8_t line)
 {
 	//	-ustawienie adresu DD RAM na pierwszą pozycję w wybranej linii wyświetlacza LCD,
 
-	LCD_cmd( LCD_SET_DDRAM | line );
+	LCD_cmd( LCD_SET_DDRAM | ptr->line[line] );
 	HAL_Delay(LCD_DELAY_MS);
 }
 
@@ -362,7 +368,7 @@ void LCD_move_display(const uint8_t direction)
 	HAL_Delay(LCD_DELAY_MS);
 }
 
-void LCD_fill_CGRAM(const uint8_t address, const char arr[])
+void LCD_fill_CGRAM(LCD_t *ptr, const uint8_t address, const char arr[])
 {
 	//	-funkcja zapisująca pojedynczy znak do pamięci CGRAM pod wskazany adres,
 	//	-jako adres należy wpisać wielokrotność ósemki,
@@ -377,7 +383,7 @@ void LCD_fill_CGRAM(const uint8_t address, const char arr[])
 		//LCD_write_data(buffor);
 	}
 
-	LCD_line_1();				//	Powrót wskaźnika na pamięć DDRAM,
+	LCD_line_1(ptr);				//	Powrót wskaźnika na pamięć DDRAM,
 }
 
 void LCD_show_display_modes(void)
